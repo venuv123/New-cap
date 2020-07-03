@@ -1,0 +1,386 @@
+---
+Description: >
+  Amanda Souza / Udacity 2019 / Capstone Project
+  CloudFormation file to create EKS.
+Parameters:
+  CapstonePipeline:
+    Description: An Enviroment name to tag resources
+    ConstraintDescription: Your env is invalid! Please, type an environment from the list
+    Type: String
+    Default: sandbox
+    AllowedValues:
+      - sandbox #env to developers create and test web apps
+      - staging #env to pre-live web apps
+      - production #env to add web app to production
+
+  Capstone:
+    Description: Name of the project this stack rolls under. Value is used to tag/name resources.
+    Type: String
+    Default: "capstone"
+
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: capstone
+
+  WorkerNodeImageId:
+    Type: AWS::EC2::Image::Id
+    Description: AMI id for the EKS Worker node instances. Search EKS Worker AMIs provided by AWS.
+    Default: "ami-0497f6feb9d494baf"
+
+  WorkerNodeInstanceType:
+    Description: EC2 instance type for the node instances
+    Type: String
+    Default: "t2.micro"
+    ConstraintDescription: Must be a valid EC2 instance type
+
+  WorkerNodeBootstrapArguments:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: "--kubelet-extra-args --node-labels=nodetype=worker"
+    Type: String
+
+Mappings:
+  MaxPodsPerNode:
+    c4.large:
+      MaxPods: 29
+    c4.xlarge:
+      MaxPods: 58
+    c4.2xlarge:
+      MaxPods: 58
+    c4.4xlarge:
+      MaxPods: 234
+    c4.8xlarge:
+      MaxPods: 234
+    c5.large:
+      MaxPods: 29
+    c5.xlarge:
+      MaxPods: 58
+    c5.2xlarge:
+      MaxPods: 58
+    c5.4xlarge:
+      MaxPods: 234
+    c5.9xlarge:
+      MaxPods: 234
+    c5.18xlarge:
+      MaxPods: 737
+    i3.large:
+      MaxPods: 29
+    i3.xlarge:
+      MaxPods: 58
+    i3.2xlarge:
+      MaxPods: 58
+    i3.4xlarge:
+      MaxPods: 234
+    i3.8xlarge:
+      MaxPods: 234
+    i3.16xlarge:
+      MaxPods: 737
+    m3.medium:
+      MaxPods: 12
+    m3.large:
+      MaxPods: 29
+    m3.xlarge:
+      MaxPods: 58
+    m3.2xlarge:
+      MaxPods: 118
+    m4.large:
+      MaxPods: 20
+    m4.xlarge:
+      MaxPods: 58
+    m4.2xlarge:
+      MaxPods: 58
+    m4.4xlarge:
+      MaxPods: 234
+    m4.10xlarge:
+      MaxPods: 234
+    m5.large:
+      MaxPods: 29
+    m5.xlarge:
+      MaxPods: 58
+    m5.2xlarge:
+      MaxPods: 58
+    m5.4xlarge:
+      MaxPods: 234
+    m5.12xlarge:
+      MaxPods: 234
+    m5.24xlarge:
+      MaxPods: 737
+    p2.xlarge:
+      MaxPods: 58
+    p2.8xlarge:
+      MaxPods: 234
+    p2.16xlarge:
+      MaxPods: 234
+    p3.2xlarge:
+      MaxPods: 58
+    p3.8xlarge:
+      MaxPods: 234
+    p3.16xlarge:
+      MaxPods: 234
+    r3.xlarge:
+      MaxPods: 58
+    r3.2xlarge:
+      MaxPods: 58
+    r3.4xlarge:
+      MaxPods: 234
+    r3.8xlarge:
+      MaxPods: 234
+    r4.large:
+      MaxPods: 29
+    r4.xlarge:
+      MaxPods: 58
+    r4.2xlarge:
+      MaxPods: 58
+    r4.4xlarge:
+      MaxPods: 234
+    r4.8xlarge:
+      MaxPods: 234
+    r4.16xlarge:
+      MaxPods: 737
+    t2.small:
+      MaxPods: 8
+    t2.medium:
+      MaxPods: 17
+    t2.large:
+      MaxPods: 35
+    t2.xlarge:
+      MaxPods: 44
+    t2.2xlarge:
+      MaxPods: 44
+    x1.16xlarge:
+      MaxPods: 234
+    x1.32xlarge:
+      MaxPods: 234
+
+Resources:
+
+  EKSClusterInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref EKSClusterInstanceRole
+
+  EKSClusterInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      RoleName: !Join [ "-", [ !Ref 'AWS::StackName', "EKS-Cluster-Role" ] ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+        - arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
+
+  EKSClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group EKS Cluster
+      GroupName: !Join [ "", [ !Ref 'AWS::StackName', "-EKS-Cluster-Security-Group" ] ]
+      VpcId:
+        Fn::ImportValue: !Sub "${Capstone}-VPCID"
+      Tags:
+      - Key: !Sub "kubernetes.io/cluster/${AWS::StackName}-EKS-Cluster"
+        Value: 'owned'
+      - Key: 'Name'
+        Value: !Join [ "", [ !Ref 'AWS::StackName', "-EKS-Cluster-Security-Group" ] ]
+
+  EKSCluster:
+    Type: "AWS::EKS::Cluster"
+    Properties:
+      Name: !Join [ "", [ !Ref 'AWS::StackName', "-EKS-Cluster" ] ]
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSClusterSecurityGroup
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${Capstone}-SUBNET1"
+          - Fn::ImportValue: !Sub "${Capstone}-SUBNET2"
+          - Fn::ImportValue: !Sub "${Capstone}-SUBNET3"
+      RoleArn: !GetAtt EKSClusterInstanceRole.Arn
+      Version: 1.14
+
+  WorkerNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref WorkerNodeInstanceRole
+
+  WorkerNodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      RoleName: !Join [ "-", [ !Ref 'AWS::StackName', "EKS-Worker-Node-Role" ] ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  WorkerNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for all nodes in the cluster
+      GroupName: !Join [ "", [ !Ref 'AWS::StackName', "-EKS-Worker-Node-Security-Group" ] ]
+      VpcId:
+        Fn::ImportValue: !Sub "${Capstone}-VPCID"
+      Tags:
+      - Key: !Sub "kubernetes.io/cluster/${AWS::StackName}-EKS-Cluster"
+        Value: 'owned'
+      - Key: 'Name'
+        Value: !Join [ "", [ !Ref 'AWS::StackName', "-EKS-Worker-Node-Security-Group" ] ]
+
+  AllowAllIPv4TrafficInboundToWorkerNodesFromWorkerNodes:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow node to communicate with each other
+      GroupId: !Ref WorkerNodeSecurityGroup
+      SourceSecurityGroupId: !Ref WorkerNodeSecurityGroup
+      IpProtocol: '-1'
+      FromPort: 0
+      ToPort: 65535
+
+  AllowIPv4TCPEphemeralInboundToWorkerNodesFromEKSCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
+      GroupId: !Ref WorkerNodeSecurityGroup
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  AllowIPv4TCPEphermeralOutboundFromEKSClusterToWorkerNodes:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Allow the cluster control plane to communicate with worker Kubelet and pods
+      GroupId: !Ref EKSClusterSecurityGroup
+      DestinationSecurityGroupId: !Ref WorkerNodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  AllowIPv4HTTPsInboundToWorkerNodesFromEKSCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
+      GroupId: !Ref WorkerNodeSecurityGroup
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  AllowIPv4HTTPsOutboundFromEKSClusterToWorkerNodes:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
+      GroupId: !Ref EKSClusterSecurityGroup
+      DestinationSecurityGroupId: !Ref WorkerNodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  AllowIPv4HTTPsInboundToEKSClusterFromWorkerNodes:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow pods to communicate with the cluster API Server
+      GroupId: !Ref EKSClusterSecurityGroup
+      SourceSecurityGroupId: !Ref WorkerNodeSecurityGroup
+      IpProtocol: tcp
+      ToPort: 443
+      FromPort: 443
+
+  AllowIPv4AllInboundFromEKSClustertoEKSCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow pods to communicate with the cluster API Server
+      GroupId: !Ref EKSClusterSecurityGroup
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: -1
+      ToPort: 0
+      FromPort: 65535
+
+  AllowIPv4AllOutboundFromEKSClustertoEKSCluster:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Allow pods to communicate with the cluster API Server
+      GroupId: !Ref EKSClusterSecurityGroup
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: -1
+      ToPort: 0
+      FromPort: 65535
+
+  WorkerNodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: 'False'
+      IamInstanceProfile: !Ref WorkerNodeInstanceProfile
+      ImageId: !Ref WorkerNodeImageId
+      InstanceType: !Ref WorkerNodeInstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups:
+      - !Ref WorkerNodeSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            set -o xtrace
+            /etc/eks/bootstrap.sh ${AWS::StackName}-EKS-Cluster ${WorkerNodeBootstrapArguments}
+            /opt/aws/bin/cfn-signal --exit-code $? \
+                     --stack  ${AWS::StackName} \
+                     --resource NodeGroup  \
+                     --region ${AWS::Region}
+
+  WorkerNodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: 2
+      LaunchConfigurationName: !Ref WorkerNodeLaunchConfig
+      MinSize: 2
+      MaxSize: 3
+      VPCZoneIdentifier:
+        Fn::Split:
+                - ","
+                - Fn::ImportValue:
+                      Fn::Sub: ${Capstone}-SUBNETS
+      Tags:
+      - Key: Name
+        Value: !Sub "${EKSCluster}-Worker-Node"
+        PropagateAtLaunch: 'true'
+      - Key: !Sub 'kubernetes.io/cluster/${EKSCluster}'
+        Value: 'owned'
+        PropagateAtLaunch: 'true'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: 1
+
+Outputs:
+  EKSClusterName:
+    Description: The node instance role
+    Value: !Ref EKSCluster
+  WorkNodesIAMRoleArn:
+    Description: The node instance role
+    Value: !GetAtt WorkerNodeInstanceRole.Arn
