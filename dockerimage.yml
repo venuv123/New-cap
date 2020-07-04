@@ -1,8 +1,8 @@
 name: Docker Image CI
 env:
-  DOCKER_USERNAME: ${{ github.actor }}
+  DOCKER_USERNAME: ${{ github.nice}}
   DOCKER_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
-  DOCKER_REPONAME:  "capstone-bcrypt"
+  DOCKER_REPONAME:  "New-cap"
 
 on:
   push:
@@ -70,7 +70,7 @@ jobs:
           image_tag="$DOCKER_USERNAME/$DOCKER_REPONAME:${GITHUB_SHA::7}"
           echo "$image_tag"
           echo "::set-env name=IMAGE_TAG::$image_tag"
-    - name: Scan bcrypt for CVEs
+    - name: Scan New-cap for CVEs
       uses: docker://docker.io/aquasec/trivy:0.2.1
       with:
         args: --severity HIGH,CRITICAL ${{ env.IMAGE_TAG }}
