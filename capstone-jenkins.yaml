@@ -1,6 +1,6 @@
 ---
 Description: >
-  Amanda Souza / Udacity 2019
+  venuv123/New-cap
   CloudFormation file to create EC2 instances.
 Parameters:
   Capstone:
