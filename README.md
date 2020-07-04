@@ -14,7 +14,7 @@ After cloning this repository, you can use the following commands:
 | `npm run build` | Build the web app for production  |
 | `npm run serve` | Start a production web server     |
 
-## License
 
-The MIT License  
-<http://victor.mit-license.org>
+
+
+
