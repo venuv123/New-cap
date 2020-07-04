@@ -1,6 +1,6 @@
 ---
 Description: >
-  Amanda Souza / Udacity 2019 / Capstone
+  Venuv123/New-cap
   CloudFormation file to allow EC2 instances to manage Web App S3.
 Parameters:
   Capstone:
@@ -15,7 +15,7 @@ Parameters:
   HostedZoneName:
     Description:  The domain name, previously registered via Route 53, which you want to use for your web site.  
     Type:  String
-    Default:  amandasouza.net
+
 
 Resources:
   Cert:
