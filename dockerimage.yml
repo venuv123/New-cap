@@ -23,14 +23,14 @@ jobs:
         uses: actions/checkout@master
         with:
           fetch-depth: 1
-      - name: Run hadolint
+      - name: 
         run: |
-          brew install hadolint
-          hadolint ./Dockerfile | tee -a hadolint_lint.txt
-          lintErrors=$(stat -f%z hadolint_lint.txt)
+          
+
+
           if [ "$lintErrors" -gt "0" ]; then
               echo "Errors have been found, please see below"
-              cat hadolint_lint.txt
+              cat 
               exit 1
           else
               echo "There are no erros found on Dockerfile!!"
@@ -59,8 +59,8 @@ jobs:
         $DOCKER_USERNAME/$DOCKER_REPONAME:${GITHUB_SHA::7}
  
    
-  security-scan-bcrypt:
-    name: Scan bcrypt
+  security-scan-New-cap:
+    name: Scan 
     needs: [docker-build-bcrypt]
     runs-on: ubuntu-latest
     timeout-minutes: 30
