@@ -1,6 +1,6 @@
 ---
 Description: >
-  Amanda Souza / Udacity 2019 / Capstone
+  venuv123/New-cap
   CloudFormation file to allow EC2 instances to manage Web App S3.
 Parameters:
   Capstone:
