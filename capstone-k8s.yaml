@@ -110,7 +110,7 @@ metadata:
 
 spec:
   rules:
-  - host: bcrypt.amandasouza.net
+  
     http:
       paths:
       - path: /
