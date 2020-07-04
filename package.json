@@ -1,6 +1,6 @@
 {
-  "name": "bcrypt-sandbox",
-  "productName": "Bcrypt Sandbox",
+  "name": "New-cap",
+  "productName": "New-cap",
   "description": "A tool for encrypting and decrypting text with bcrypt.",
   "version": "1.0.0",
   "main": "src/index.js",
@@ -12,15 +12,15 @@
   },
   "keywords": [],
   "author": {
-    "name": "Victor Nogueira",
-    "email": "felladrin@gmail.com",
-    "url": "https://victornogueira.io"
+    "name": "venuv123",
+    "email": "venugoogly415@gmail.com",
+   
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/felladrin/bcrypt-sandbox"
+    "url": "https://github.com/venuv123/New-cap" 
   },
-  "license": "MIT",
+
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "react": "^16.12.0",
