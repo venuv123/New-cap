@@ -2,7 +2,7 @@
 
 A tool for encrypting and decrypting text with bcrypt.
 
-![Screenshot](screenshot.png)
+
 
 ## Running and Building
 
