@@ -1,6 +1,6 @@
 ---
 Description: >
-  Amanda Souza / Udacity 2019 / Capstone Project
+  venuv123/New-cap
   CloudFormation file to create VPC to EKS.
 Parameters:
   Capstone:
