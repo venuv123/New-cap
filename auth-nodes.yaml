@@ -10,7 +10,7 @@ data:
       groups:
         - system:bootstrappers
         - system:nodes
-    - rolearn: arn:aws:iam::825317146186:role/amanda
-      username: amanda
+    - rolearn: arn:aws:iam::825317146186:role/Venuv123
+      username: Venuv123
       groups:
         - system:masters
